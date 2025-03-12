@@ -8,20 +8,10 @@ export type IconInfo = {
   component: React.ComponentType<LucideProps>;
 };
 
-export type AnimationType =
-  | "pulse"
-  | "bounce"
-  | "spin"
-  | "shake"
-  | "flip"
-  | "none";
-
 export type GridItem = {
   icon: IconInfo;
   iconColor: string;
   bgColor: string;
-  animation: AnimationType;
-  isAnimating: boolean;
 };
 
 export const useIconGrid = () => {
@@ -51,29 +41,17 @@ export const useIconGrid = () => {
     "bg-teal-900",
   ];
 
-  const animations: AnimationType[] = [
-    "pulse",
-    "bounce",
-    "spin",
-    "shake",
-    "flip",
-  ];
-
   // Generate a random item for the grid
   const generateRandomItem = (): GridItem => {
     const randomIcon = icons[Math.floor(Math.random() * icons.length)];
     const randomIconColor =
       iconColors[Math.floor(Math.random() * iconColors.length)];
     const randomBgColor = bgColors[Math.floor(Math.random() * bgColors.length)];
-    const randomAnimation =
-      animations[Math.floor(Math.random() * animations.length)];
 
     return {
       icon: randomIcon,
       iconColor: randomIconColor,
       bgColor: randomBgColor,
-      animation: randomAnimation,
-      isAnimating: false,
     };
   };
 
@@ -108,36 +86,8 @@ export const useIconGrid = () => {
     };
   }, []);
 
-  // Function to handle icon click
-  const handleIconClick = (index: number) => {
-    setGridItems((prevItems) => {
-      const newItems = [...prevItems];
-      newItems[index] = {
-        ...newItems[index],
-        isAnimating: true,
-      };
-
-      // Reset animation after 1 second
-      setTimeout(() => {
-        setGridItems((prevItems) => {
-          const items = [...prevItems];
-          if (items[index]) {
-            items[index] = {
-              ...items[index],
-              isAnimating: false,
-            };
-          }
-          return items;
-        });
-      }, 1000);
-
-      return newItems;
-    });
-  };
-
   return {
     gridItems,
     gridSize,
-    handleIconClick,
   };
 };

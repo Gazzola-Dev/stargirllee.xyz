@@ -3,27 +3,7 @@
 import { useIconGrid } from "@/hooks/useIconGrid";
 
 export default function IconGridPage() {
-  const { gridItems, gridSize, handleIconClick } = useIconGrid();
-
-  // Animation classes mapping
-  const getAnimationClass = (animation: string, isAnimating: boolean) => {
-    if (!isAnimating) return "";
-
-    switch (animation) {
-      case "pulse":
-        return "animate-pulse";
-      case "bounce":
-        return "animate-bounce";
-      case "spin":
-        return "animate-spin";
-      case "shake":
-        return "animate-shake";
-      case "flip":
-        return "animate-flip";
-      default:
-        return "";
-    }
-  };
+  const { gridItems, gridSize } = useIconGrid();
 
   return (
     <div
@@ -35,20 +15,13 @@ export default function IconGridPage() {
     >
       {gridItems.map((item, index) => {
         const IconComponent = item.icon.component;
-        const animationClass = getAnimationClass(
-          item.animation,
-          item.isAnimating
-        );
 
         return (
           <div
             key={index}
-            className={`size-10 flex items-center justify-center ${item.bgColor} cursor-pointer`}
-            onClick={() => handleIconClick(index)}
+            className={`size-10 flex items-center justify-center ${item.bgColor}`}
           >
-            <IconComponent
-              className={`size-8 ${item.iconColor} ${animationClass}`}
-            />
+            <IconComponent className={`size-8 ${item.iconColor}`} />
           </div>
         );
       })}

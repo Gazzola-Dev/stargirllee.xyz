@@ -66,6 +66,7 @@ const ignoredFiles = [
   ".temp_project-ref",
   ".temp_rest-version",
   ".temp_storage-version",
+  ".svg", // Added SVG files to ignored list
 ];
 
 // Development warning header
@@ -95,6 +96,12 @@ function clearDirectory(dirPath) {
 function shouldIncludeFile(filePath) {
   const normalizedPath = filePath.replace(/\\/g, "/");
   const fileName = path.basename(normalizedPath);
+  const fileExtension = path.extname(fileName).toLowerCase();
+
+  // Check file extension - exclude .svg files
+  if (fileExtension === ".svg") {
+    return false;
+  }
 
   // Check system files
   if (ignoredFiles.includes(fileName)) {
