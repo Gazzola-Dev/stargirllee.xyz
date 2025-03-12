@@ -30,25 +30,25 @@ export const useIconGrid = () => {
 
   // Color options
   const iconColors = [
-    "text-red-500",
-    "text-blue-500",
-    "text-green-500",
-    "text-yellow-500",
-    "text-purple-500",
-    "text-pink-500",
-    "text-indigo-500",
-    "text-teal-500",
+    "text-red-400",
+    "text-blue-400",
+    "text-green-400",
+    "text-yellow-300",
+    "text-purple-400",
+    "text-pink-400",
+    "text-indigo-400",
+    "text-teal-400",
   ];
 
   const bgColors = [
-    "bg-red-100",
-    "bg-blue-100",
-    "bg-green-100",
-    "bg-yellow-100",
-    "bg-purple-100",
-    "bg-pink-100",
-    "bg-indigo-100",
-    "bg-teal-100",
+    "bg-red-900",
+    "bg-blue-900",
+    "bg-green-900",
+    "bg-yellow-900",
+    "bg-purple-900",
+    "bg-pink-900",
+    "bg-indigo-900",
+    "bg-teal-900",
   ];
 
   const animations: AnimationType[] = [
