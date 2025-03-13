@@ -1,5 +1,5 @@
-import { icons } from "@/lib/iconList.util";
-import { LucideProps } from "lucide-react";
+import getRandomIcons from "@/lib/iconList.util";
+import { Heart, LucideProps } from "lucide-react";
 import { useEffect, useState } from "react";
 
 // Type definitions
@@ -23,30 +23,7 @@ export type GridPosition = {
   y: number;
 };
 
-// Color options
-const iconColors = [
-  "text-red-400",
-  "text-blue-400",
-  "text-green-400",
-  "text-yellow-300",
-  "text-purple-400",
-  "text-pink-400",
-  "text-indigo-400",
-  "text-teal-400",
-];
-
-const bgColors = [
-  "bg-red-900",
-  "bg-blue-900",
-  "bg-green-900",
-  "bg-yellow-900",
-  "bg-purple-900",
-  "bg-pink-900",
-  "bg-indigo-900",
-  "bg-teal-900",
-];
-
-export const useInitialIconGrid = () => {
+export const useInitialIconGrid = (initialDensity = 0.33) => {
   // Fixed grid size of 50x50
   const fixedGridWidth = 50;
   const fixedGridHeight = 50;
@@ -58,21 +35,45 @@ export const useInitialIconGrid = () => {
     y: Math.floor(fixedGridHeight / 2),
   });
   const [isInitialized, setIsInitialized] = useState(false);
+  const [density, setDensity] = useState(initialDensity);
 
-  // Generate a random item for the grid
-  const generateRandomItem = (x: number, y: number): GridItem => {
-    const randomIcon = icons[Math.floor(Math.random() * icons.length)];
-    const randomIconColor =
-      iconColors[Math.floor(Math.random() * iconColors.length)];
-    const randomBgColor = bgColors[Math.floor(Math.random() * bgColors.length)];
+  // Available icons collection
+  const availableIcons = getRandomIcons({
+    friends: 4,
+    inventory: 4,
+    animals: 6,
+  });
 
+  // Available colors collection
+  const iconColors = [
+    "text-red-500",
+    "text-blue-500",
+    "text-green-500",
+    "text-yellow-400",
+    "text-purple-500",
+    "text-pink-500",
+    "text-orange-500",
+    "text-teal-500",
+    "text-indigo-500",
+    "text-rose-500",
+  ];
+
+  // Generate empty black grid item
+  const generateEmptyItem = (x: number, y: number): GridItem => {
     return {
-      icon: randomIcon,
-      iconColor: randomIconColor,
-      bgColor: randomBgColor,
+      icon: { name: "heart", component: Heart }, // Default icon, will be invisible due to color
+      iconColor: "text-black", // Black icon on black background = invisible
+      bgColor: "bg-transparent", // No background color
       position: { x, y },
     };
   };
+
+  // Function to get a random item from an array
+  const getRandomItem = <T>(items: T[]): T => {
+    return items[Math.floor(Math.random() * items.length)];
+  };
+
+  // This function is no longer needed since we're now using currentDensity parameter directly
 
   // Function to set an icon at a specific position - only works before initialization is complete
   const setIconAt = (
@@ -118,35 +119,79 @@ export const useInitialIconGrid = () => {
     });
   };
 
-  // Initialize grid when component mounts
-  useEffect(() => {
-    const initializeGrid = () => {
-      if (typeof window === "undefined") return;
+  // Update density function
+  const updateDensity = (newDensity: number) => {
+    const clampedDensity = Math.max(0, Math.min(1, newDensity));
+    setDensity(clampedDensity);
 
-      // Calculate viewport size in grid units
-      const squareSize = 40; // size-10 = 2.5rem = 40px
-      const viewportColumns = Math.floor(window.innerWidth / squareSize);
-      const viewportRows = Math.floor(window.innerHeight / squareSize);
+    // Re-initialize the grid with the new density
+    if (isInitialized) {
+      setIsInitialized(false);
+      initializeGrid(clampedDensity);
+    }
+  };
 
-      setViewportSize({
-        width: Math.min(viewportColumns, fixedGridWidth),
-        height: Math.min(viewportRows, fixedGridHeight),
-      });
+  // Initialize grid with random icons based on density
+  const initializeGrid = (currentDensity: number) => {
+    if (typeof window === "undefined") return;
 
-      // Generate initial grid items for the entire 50x50 grid
-      const items: GridItem[] = [];
+    // Set the density state with the current density parameter
+    setDensity(currentDensity);
 
-      for (let y = 0; y < fixedGridHeight; y++) {
-        for (let x = 0; x < fixedGridWidth; x++) {
-          items.push(generateRandomItem(x, y));
+    // Calculate viewport size in grid units
+    const squareSize = 40; // size-10 = 2.5rem = 40px
+    const viewportColumns = Math.floor(window.innerWidth / squareSize);
+    const viewportRows = Math.floor(window.innerHeight / squareSize);
+
+    setViewportSize({
+      width: Math.min(viewportColumns, fixedGridWidth),
+      height: Math.min(viewportRows, fixedGridHeight),
+    });
+
+    // Generate initial grid items for the entire 50x50 grid
+    const items: GridItem[] = [];
+
+    for (let y = 0; y < fixedGridHeight; y++) {
+      for (let x = 0; x < fixedGridWidth; x++) {
+        // Generate base empty item
+        const baseItem = generateEmptyItem(x, y);
+
+        // For the center position, always place a heart with a star on top
+        if (x === centerPosition.x && y === centerPosition.y) {
+          items.push({
+            ...baseItem,
+            icon: { name: "heart", component: Heart },
+            iconColor: "text-red-500",
+            bgColor: "bg-transparent",
+          });
+          continue;
+        }
+
+        // For other positions, randomly place icons based on density
+        // Use the passed-in currentDensity parameter for the check
+        if (Math.random() < currentDensity) {
+          const randomIcon = getRandomItem(availableIcons);
+          const randomColor = getRandomItem(iconColors);
+
+          items.push({
+            ...baseItem,
+            icon: randomIcon,
+            iconColor: randomColor,
+            bgColor: "bg-transparent",
+          });
+        } else {
+          // Keep empty (transparent) items
+          items.push(baseItem);
         }
       }
+    }
 
-      setGridItems(items);
-    };
+    setGridItems(items);
+  };
 
-    // Initialize the grid
-    initializeGrid();
+  // Initialize grid when component mounts
+  useEffect(() => {
+    initializeGrid(density);
 
     // Handle window resize
     const handleResize = () => {
@@ -265,5 +310,7 @@ export const useInitialIconGrid = () => {
     setIconAt,
     isInitialized,
     completeInitialization,
+    density,
+    updateDensity,
   };
 };
