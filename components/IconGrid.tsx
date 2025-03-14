@@ -1,19 +1,36 @@
 "use client";
 
-import useGame from "@/hooks/useGame";
-import { Star } from "lucide-react";
+import { useGame } from "@/hooks/useGame";
+import { Heart, Star } from "lucide-react";
+import { useEffect } from "react";
 
 export default function IconGrid() {
-  const { gameItems, gridSize, initialized } = useGame();
+  const {
+    gridItems,
+    gridSize,
+    centerPosition,
+    setIconAt,
+    isInitialized,
+    completeInitialization,
+  } = useGame();
 
-  // Wait until the game is initialized
-  if (!initialized) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        Loading...
-      </div>
+  // Set center icon after the grid initializes, but only once
+  useEffect(() => {
+    if (isInitialized) {
+      return; // Skip if already initialized
+    }
+
+    // Set a heart icon at the center (will be under the star)
+    setIconAt(
+      centerPosition,
+      { name: "heart", component: Heart },
+      "text-red-500",
+      "bg-black"
     );
-  }
+
+    // Mark initialization as complete
+    completeInitialization();
+  }, [centerPosition, setIconAt, isInitialized, completeInitialization]);
 
   return (
     <div className="flex justify-center items-center min-h-screen">
@@ -24,9 +41,13 @@ export default function IconGrid() {
           height: `${gridSize.height * 40}px`,
         }}
       >
-        {gameItems.map((item) => {
+        {gridItems.map((item) => {
           const IconComponent = item.icon.component;
-          const isCenter = item.isCenter;
+
+          // Check if this is the center position
+          const isCenter =
+            item.position.x === centerPosition.x &&
+            item.position.y === centerPosition.y;
 
           return (
             <div

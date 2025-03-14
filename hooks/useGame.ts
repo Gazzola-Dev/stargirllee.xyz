@@ -1,128 +1,298 @@
-import { CircleOff, Heart, LucideIcon } from "lucide-react";
+import useIsMounted from "@/hooks/useIsMounted";
+import getRandomIcons from "@/lib/iconList.util";
+import { Heart, LucideProps } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { GridPosition, useGrid } from "./useGrid";
 
-// Type definitions for game items
-export type GameIconInfo = {
+// Type definitions
+export type IconInfo = {
   name: string;
-  component: LucideIcon;
+  component: React.ComponentType<LucideProps>;
 };
 
-export type GameGridItem = {
-  icon: GameIconInfo;
+export type GridItem = {
+  icon: IconInfo;
   iconColor: string;
   bgColor: string;
-  position: GridPosition;
-  renderPosition: GridPosition;
-  isCenter?: boolean;
+  position: {
+    x: number;
+    y: number;
+  };
 };
 
-// Direction type for movement
-type Direction = "up" | "down" | "left" | "right";
+export type GridPosition = {
+  x: number;
+  y: number;
+};
 
-export const useGame = () => {
-  // Get basic grid functionality from useGrid
-  const { gridItems, gridSize, totalGridSize, centerPosition } = useGrid();
+export type ViewportInfo = {
+  width: number;
+  height: number;
+  offsetX: number;
+  offsetY: number;
+};
 
-  // Game state
-  const [gameMap, setGameMap] = useState<GameGridItem[]>([]);
-  const [initialized, setInitialized] = useState(false);
+const iconColors = [
+  "text-red-500",
+  "text-blue-500",
+  "text-green-500",
+  "text-yellow-400",
+  "text-purple-500",
+  "text-pink-500",
+  "text-orange-500",
+  "text-teal-500",
+  "text-indigo-500",
+  "text-rose-500",
+];
+
+export const useGame = (initialDensity = 0.33) => {
+  const isMounted = useIsMounted();
+
+  // Fixed grid size of 50x50
+  const gridWidth = 50;
+  const gridHeight = 50;
+
+  // Full grid state - stores all 50x50 grid items
+  const [fullGridItems, setFullGridItems] = useState<GridItem[]>([]);
+
+  // Viewport state - represents what's visible on screen
+  const [viewport, setViewport] = useState<ViewportInfo>({
+    width: 0,
+    height: 0,
+    offsetX: 0,
+    offsetY: 0,
+  });
+
+  // Center position of the grid
+  const [centerPosition] = useState<GridPosition>({
+    x: Math.floor(gridWidth / 2),
+    y: Math.floor(gridHeight / 2),
+  });
+
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [density, setDensity] = useState(initialDensity);
+
+  // Available icons collection
+  const availableIcons = getRandomIcons({
+    friends: 4,
+    inventory: 4,
+    animals: 6,
+  });
 
   // Available colors collection
-  const iconColors = [
-    "text-red-500",
-    "text-blue-500",
-    "text-green-500",
-    "text-yellow-400",
-    "text-purple-500",
-    "text-pink-500",
-    "text-orange-500",
-    "text-teal-500",
-    "text-indigo-500",
-    "text-rose-500",
-  ];
 
-  // Placeholder empty icon
-  const emptyIcon: GameIconInfo = {
-    name: "empty",
-    component: CircleOff,
+  // Generate empty grid item
+  const generateEmptyItem = (x: number, y: number): GridItem => {
+    return {
+      icon: { name: "heart", component: Heart }, // Default icon
+      iconColor: "text-black", // Black icon on black background = invisible
+      bgColor: "bg-transparent", // No background color
+      position: { x, y },
+    };
   };
 
-  // Initialize the game map
-  const initializeGameMap = useCallback(() => {
-    if (gridItems.length === 0) return;
+  // Get a random item from an array
+  const getRandomItem = <T>(items: T[]): T => {
+    return items[Math.floor(Math.random() * items.length)];
+  };
 
-    const newGameMap: GameGridItem[] = gridItems.map((item) => {
-      // Check if this is the center position
-      const isCenter =
-        item.position.x === centerPosition.x &&
-        item.position.y === centerPosition.y;
-
-      if (isCenter) {
-        // Center position gets heart with specific styling
-        return {
-          icon: { name: "heart", component: Heart },
-          iconColor: "text-red-500",
-          bgColor: "bg-black",
-          position: item.position,
-          renderPosition: item.renderPosition,
-          isCenter: true,
-        };
+  // Set an icon at a specific position - only works before initialization is complete
+  const setIconAt = useCallback(
+    (
+      position: GridPosition,
+      icon: IconInfo,
+      iconColor: string,
+      bgColor: string
+    ) => {
+      if (isInitialized) {
+        // Block functionality after initialization
+        return;
       }
 
-      // Random chance to place an icon (around 33%)
-      if (Math.random() < 0.33) {
-        // Get a random color
-        const randomColor =
-          iconColors[Math.floor(Math.random() * iconColors.length)];
+      setFullGridItems((prevItems) => {
+        // Create a new array to avoid mutating the state directly
+        const newItems = [...prevItems];
 
-        return {
-          icon: emptyIcon, // We'll just use empty icons for now
-          iconColor: randomColor,
-          bgColor: "bg-transparent",
-          position: item.position,
-          renderPosition: item.renderPosition,
-          isCenter: false,
-        };
-      }
+        // Find the index of the item at the given position
+        const itemIndex = newItems.findIndex(
+          (item) =>
+            item.position.x === position.x && item.position.y === position.y
+        );
 
-      // Default empty item
-      return {
-        icon: emptyIcon,
-        iconColor: "text-transparent",
-        bgColor: "bg-transparent",
-        position: item.position,
-        renderPosition: item.renderPosition,
-        isCenter: false,
-      };
+        // If an item exists at the position, update it
+        if (itemIndex !== -1) {
+          newItems[itemIndex] = {
+            ...newItems[itemIndex],
+            icon,
+            iconColor,
+            bgColor,
+          };
+        } else {
+          // If no item exists, add a new one
+          newItems.push({
+            icon,
+            iconColor,
+            bgColor,
+            position,
+          });
+        }
+
+        return newItems;
+      });
+    },
+    [isInitialized]
+  );
+
+  // Initialize the full grid with icons
+  const initializeFullGrid = useCallback(() => {
+    if (typeof window === "undefined") return;
+
+    // Calculate viewport size in grid units
+    const squareSize = 40; // size-10 = 2.5rem = 40px
+    const viewportColumns = Math.floor(window.innerWidth / squareSize);
+    const viewportRows = Math.floor(window.innerHeight / squareSize);
+
+    // Update viewport state
+    setViewport({
+      width: Math.min(viewportColumns, gridWidth),
+      height: Math.min(viewportRows, gridHeight),
+      offsetX: Math.max(0, centerPosition.x - Math.floor(viewportColumns / 2)),
+      offsetY: Math.max(0, centerPosition.y - Math.floor(viewportRows / 2)),
     });
 
-    setGameMap(newGameMap);
-    setInitialized(true);
-  }, [gridItems, centerPosition]);
+    // Generate items for the entire 50x50 grid
+    const items: GridItem[] = [];
 
-  // Initialize game when grid is ready
-  useEffect(() => {
-    if (gridItems.length > 0 && !initialized) {
-      initializeGameMap();
+    for (let y = 0; y < gridHeight; y++) {
+      for (let x = 0; x < gridWidth; x++) {
+        // For the center position, leave empty for now (will be set with setIconAt)
+        if (x === centerPosition.x && y === centerPosition.y) {
+          items.push(generateEmptyItem(x, y));
+          continue;
+        }
+
+        // For all other positions, randomly place icons based on density
+        if (Math.random() < density) {
+          const randomIcon = getRandomItem(availableIcons);
+          const randomColor = getRandomItem(iconColors);
+
+          items.push({
+            ...generateEmptyItem(x, y),
+            icon: randomIcon,
+            iconColor: randomColor,
+          });
+        } else {
+          // Keep empty items
+          items.push(generateEmptyItem(x, y));
+        }
+      }
     }
-  }, [gridItems, initialized, initializeGameMap]);
 
-  // Handle keyboard input
+    setFullGridItems(items);
+  }, [availableIcons, centerPosition.x, centerPosition.y, density]);
+
+  // Update viewport position (for scrolling/movement)
+  const moveViewport = useCallback(
+    (dx: number, dy: number) => {
+      setViewport((prev) => {
+        // Calculate new offset
+        const newOffsetX = Math.max(
+          0,
+          Math.min(gridWidth - prev.width, prev.offsetX + dx)
+        );
+        const newOffsetY = Math.max(
+          0,
+          Math.min(gridHeight - prev.height, prev.offsetY + dy)
+        );
+
+        return {
+          ...prev,
+          offsetX: newOffsetX,
+          offsetY: newOffsetY,
+        };
+      });
+    },
+    [gridHeight, gridWidth]
+  );
+
+  // Mark initialization as complete
+  const completeInitialization = useCallback(() => {
+    if (!isInitialized) {
+      setIsInitialized(true);
+    }
+  }, [isInitialized]);
+
+  // Get visible grid items based on current viewport
+  const getVisibleItems = useCallback(() => {
+    // Check if viewport and grid are initialized
+    if (
+      viewport.width === 0 ||
+      viewport.height === 0 ||
+      fullGridItems.length === 0
+    ) {
+      return [];
+    }
+
+    // Filter grid items within the current viewport
+    const visibleItems = fullGridItems.filter((item) => {
+      return (
+        item.position.x >= viewport.offsetX &&
+        item.position.x < viewport.offsetX + viewport.width &&
+        item.position.y >= viewport.offsetY &&
+        item.position.y < viewport.offsetY + viewport.height
+      );
+    });
+
+    // Add render positions for visible items
+    return visibleItems.map((item) => ({
+      ...item,
+      renderPosition: {
+        x: item.position.x - viewport.offsetX,
+        y: item.position.y - viewport.offsetY,
+      },
+    }));
+  }, [fullGridItems, viewport]);
+
+  useEffect(() => {
+    if (isMounted) return;
+    initializeFullGrid();
+
+    // Handle window resize
+    const handleResize = () => {
+      const squareSize = 40;
+      const viewportColumns = Math.floor(window.innerWidth / squareSize);
+      const viewportRows = Math.floor(window.innerHeight / squareSize);
+
+      setViewport((prev) => ({
+        width: Math.min(viewportColumns, gridWidth),
+        height: Math.min(viewportRows, gridHeight),
+        offsetX: prev.offsetX,
+        offsetY: prev.offsetY,
+      }));
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [initializeFullGrid, gridWidth, gridHeight, isMounted]);
+
+  // Handle keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isInitialized) return;
+
       switch (e.key) {
         case "ArrowUp":
-          moveItems("up");
+          moveViewport(0, -1);
           break;
         case "ArrowDown":
-          moveItems("down");
+          moveViewport(0, 1);
           break;
         case "ArrowLeft":
-          moveItems("left");
+          moveViewport(-1, 0);
           break;
         case "ArrowRight":
-          moveItems("right");
+          moveViewport(1, 0);
           break;
       }
     };
@@ -131,79 +301,26 @@ export const useGame = () => {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [gameMap]);
-
-  // Move items in the opposite direction of the key press
-  const moveItems = (direction: Direction) => {
-    setGameMap((prevMap) => {
-      const newMap = [...prevMap];
-
-      // We'll move all non-center items in the opposite direction
-      newMap.forEach((item) => {
-        if (item.isCenter) return; // Skip the center item
-
-        const newPosition = { ...item.position };
-
-        switch (direction) {
-          case "up":
-            // Move down (opposite of up)
-            newPosition.y = (newPosition.y + 1) % totalGridSize.height;
-            break;
-          case "down":
-            // Move up (opposite of down)
-            newPosition.y =
-              (newPosition.y - 1 + totalGridSize.height) % totalGridSize.height;
-            break;
-          case "left":
-            // Move right (opposite of left)
-            newPosition.x = (newPosition.x + 1) % totalGridSize.width;
-            break;
-          case "right":
-            // Move left (opposite of right)
-            newPosition.x =
-              (newPosition.x - 1 + totalGridSize.width) % totalGridSize.width;
-            break;
-        }
-
-        item.position = newPosition;
-      });
-
-      return newMap;
-    });
-  };
-
-  // Filter game items to match visible grid items
-  const visibleGameItems = gameMap
-    .filter((item) =>
-      gridItems.some(
-        (gridItem) =>
-          gridItem.position.x === item.position.x &&
-          gridItem.position.y === item.position.y
-      )
-    )
-    .map((item) => {
-      // Find the matching grid item to get the current render position
-      const matchingGridItem = gridItems.find(
-        (gridItem) =>
-          gridItem.position.x === item.position.x &&
-          gridItem.position.y === item.position.y
-      );
-
-      if (matchingGridItem) {
-        return {
-          ...item,
-          renderPosition: matchingGridItem.renderPosition,
-        };
-      }
-
-      return item;
-    });
+  }, [isInitialized, moveViewport]);
 
   return {
-    gameItems: visibleGameItems,
-    gridSize,
+    gridItems: getVisibleItems(),
+    allGridItems: fullGridItems,
+    gridSize: {
+      width: viewport.width,
+      height: viewport.height,
+    },
+    totalGridSize: {
+      width: gridWidth,
+      height: gridHeight,
+    },
     centerPosition,
-    initialized,
+    setIconAt,
+    isInitialized,
+    completeInitialization,
+    density,
+    updateDensity: setDensity,
+    moveViewport,
   };
 };
 
