@@ -278,19 +278,19 @@ export const useGame = (initialDensity = 0.33) => {
       if (!isInitialized) return;
 
       switch (e.key) {
-        case "ArrowUp":
+        case "ArrowDown":
           // When player moves up, grid should move down
           moveViewport(0, 1);
           break;
-        case "ArrowDown":
+        case "ArrowUp":
           // When player moves down, grid should move up
           moveViewport(0, -1);
           break;
-        case "ArrowLeft":
+        case "ArrowRight":
           // When player moves left, grid should move right
           moveViewport(1, 0);
           break;
-        case "ArrowRight":
+        case "ArrowLeft":
           // When player moves right, grid should move left
           moveViewport(-1, 0);
           break;
