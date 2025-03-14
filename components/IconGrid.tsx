@@ -1,36 +1,19 @@
 "use client";
 
 import { useGame } from "@/hooks/useGame";
-import { Heart, Star } from "lucide-react";
 import { useEffect } from "react";
+import PlayerCharacter from "./PlayerCharacter";
 
 export default function IconGrid() {
-  const {
-    gridItems,
-    gridSize,
-    centerPosition,
-    setIconAt,
-    isInitialized,
-    completeInitialization,
-  } = useGame();
+  const { gridItems, gridSize, isInitialized, completeInitialization } =
+    useGame();
 
-  // Set center icon after the grid initializes, but only once
+  // Mark initialization as complete after mounting
   useEffect(() => {
-    if (isInitialized) {
-      return; // Skip if already initialized
+    if (!isInitialized) {
+      completeInitialization();
     }
-
-    // Set a heart icon at the center (will be under the star)
-    setIconAt(
-      centerPosition,
-      { name: "heart", component: Heart },
-      "text-red-500",
-      "bg-black"
-    );
-
-    // Mark initialization as complete
-    completeInitialization();
-  }, [centerPosition, setIconAt, isInitialized, completeInitialization]);
+  }, [isInitialized, completeInitialization]);
 
   return (
     <div className="flex justify-center items-center min-h-screen">
@@ -44,11 +27,6 @@ export default function IconGrid() {
         {gridItems.map((item) => {
           const IconComponent = item.icon.component;
 
-          // Check if this is the center position
-          const isCenter =
-            item.position.x === centerPosition.x &&
-            item.position.y === centerPosition.y;
-
           return (
             <div
               key={`${item.position.x}-${item.position.y}`}
@@ -61,14 +39,23 @@ export default function IconGrid() {
               }}
             >
               <IconComponent className={`size-8 ${item.iconColor}`} />
-
-              {/* Add star icon on top of heart at center position */}
-              {isCenter && (
-                <Star className="size-8 text-yellow-400 absolute z-10" />
-              )}
             </div>
           );
         })}
+
+        {/* Player character is always centered on screen, not part of the grid */}
+        <div
+          className="absolute"
+          style={{
+            left: `${Math.floor(gridSize.width / 2) * 40}px`,
+            top: `${Math.floor(gridSize.height / 2) * 40}px`,
+            transform: "translate(-50%, -50%)",
+            marginLeft: "20px",
+            marginTop: "20px",
+          }}
+        >
+          <PlayerCharacter />
+        </div>
       </div>
     </div>
   );

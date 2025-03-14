@@ -17,6 +17,10 @@ export type GridItem = {
     x: number;
     y: number;
   };
+  renderPosition?: {
+    x: number;
+    y: number;
+  };
 };
 
 export type GridPosition = {
@@ -77,8 +81,6 @@ export const useGame = (initialDensity = 0.33) => {
     inventory: 4,
     animals: 6,
   });
-
-  // Available colors collection
 
   // Generate empty grid item
   const generateEmptyItem = (x: number, y: number): GridItem => {
@@ -164,13 +166,7 @@ export const useGame = (initialDensity = 0.33) => {
 
     for (let y = 0; y < gridHeight; y++) {
       for (let x = 0; x < gridWidth; x++) {
-        // For the center position, leave empty for now (will be set with setIconAt)
-        if (x === centerPosition.x && y === centerPosition.y) {
-          items.push(generateEmptyItem(x, y));
-          continue;
-        }
-
-        // For all other positions, randomly place icons based on density
+        // For all positions, randomly place icons based on density
         if (Math.random() < density) {
           const randomIcon = getRandomItem(availableIcons);
           const randomColor = getRandomItem(iconColors);
@@ -283,16 +279,20 @@ export const useGame = (initialDensity = 0.33) => {
 
       switch (e.key) {
         case "ArrowUp":
-          moveViewport(0, -1);
-          break;
-        case "ArrowDown":
+          // When player moves up, grid should move down
           moveViewport(0, 1);
           break;
+        case "ArrowDown":
+          // When player moves down, grid should move up
+          moveViewport(0, -1);
+          break;
         case "ArrowLeft":
-          moveViewport(-1, 0);
+          // When player moves left, grid should move right
+          moveViewport(1, 0);
           break;
         case "ArrowRight":
-          moveViewport(1, 0);
+          // When player moves right, grid should move left
+          moveViewport(-1, 0);
           break;
       }
     };
