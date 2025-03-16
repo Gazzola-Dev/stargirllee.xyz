@@ -1,5 +1,5 @@
 import useIsMounted from "@/hooks/useIsMounted";
-import getRandomIcons from "@/lib/iconList.util";
+import { icons } from "@/lib/iconList.util";
 import { Heart, LucideProps } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
@@ -76,11 +76,7 @@ export const useGame = (initialDensity = 0.33) => {
   const [density, setDensity] = useState(initialDensity);
 
   // Available icons collection
-  const availableIcons = getRandomIcons({
-    friends: 4,
-    inventory: 4,
-    animals: 6,
-  });
+  const availableIcons = icons;
 
   // Generate empty grid item
   const generateEmptyItem = (x: number, y: number): GridItem => {
