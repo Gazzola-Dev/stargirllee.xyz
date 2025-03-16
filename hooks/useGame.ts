@@ -21,6 +21,7 @@ export type GridItem = {
     x: number;
     y: number;
   };
+  isAdjacentToPlayer?: boolean;
 };
 
 export type GridPosition = {
@@ -81,10 +82,11 @@ export const useGame = (initialDensity = 0.33) => {
   // Generate empty grid item
   const generateEmptyItem = (x: number, y: number): GridItem => {
     return {
-      icon: { name: "heart", component: Heart }, // Default icon
-      iconColor: "text-black", // Black icon on black background = invisible
+      icon: { name: "empty", component: Heart }, // Just a placeholder, won't be rendered
+      iconColor: "text-transparent", // Transparent, so it's invisible
       bgColor: "bg-transparent", // No background color
       position: { x, y },
+      isAdjacentToPlayer: false,
     };
   };
 
@@ -131,6 +133,7 @@ export const useGame = (initialDensity = 0.33) => {
             iconColor,
             bgColor,
             position,
+            isAdjacentToPlayer: false,
           });
         }
 
@@ -182,6 +185,38 @@ export const useGame = (initialDensity = 0.33) => {
     setFullGridItems(items);
   }, [availableIcons, centerPosition.x, centerPosition.y, density]);
 
+  // Determine which grid items are adjacent to the player
+  const updateAdjacentItems = useCallback(() => {
+    // The player is at the center of the viewport
+    const playerX = viewport.offsetX + Math.floor(viewport.width / 2);
+    const playerY = viewport.offsetY + Math.floor(viewport.height / 2);
+
+    // Check the 4 grid positions that meet at the player's vertex
+    // These are the top-left, top-right, bottom-left, and bottom-right squares from the player's position
+    const adjacentPositions = [
+      { x: playerX, y: playerY }, // top-left
+      { x: playerX + 1, y: playerY }, // top-right
+      { x: playerX, y: playerY + 1 }, // bottom-left
+      { x: playerX + 1, y: playerY + 1 }, // bottom-right
+    ];
+
+    setFullGridItems((prevItems) => {
+      // Create a new array to avoid mutating the state directly
+      return prevItems.map((item) => {
+        // Check if this item is in one of the 4 adjacent positions
+        const isAdjacent = adjacentPositions.some(
+          (pos) => pos.x === item.position.x && pos.y === item.position.y
+        );
+
+        // Update only the adjacency flag, not the color
+        return {
+          ...item,
+          isAdjacentToPlayer: isAdjacent,
+        };
+      });
+    });
+  }, [viewport]);
+
   // Update viewport position (for scrolling/movement)
   const moveViewport = useCallback(
     (dx: number, dy: number) => {
@@ -202,6 +237,9 @@ export const useGame = (initialDensity = 0.33) => {
           offsetY: newOffsetY,
         };
       });
+
+      // We'll update adjacent items after the state update is complete
+      // using the useEffect below, not here
     },
     [gridHeight, gridWidth]
   );
@@ -210,8 +248,10 @@ export const useGame = (initialDensity = 0.33) => {
   const completeInitialization = useCallback(() => {
     if (!isInitialized) {
       setIsInitialized(true);
+      // Initial update of adjacent items
+      updateAdjacentItems();
     }
-  }, [isInitialized]);
+  }, [isInitialized, updateAdjacentItems]);
 
   // Get visible grid items based on current viewport
   const getVisibleItems = useCallback(() => {
@@ -267,6 +307,14 @@ export const useGame = (initialDensity = 0.33) => {
       window.removeEventListener("resize", handleResize);
     };
   }, [initializeFullGrid, gridWidth, gridHeight, isMounted]);
+
+  // Effect to update adjacent items whenever the viewport changes
+  useEffect(() => {
+    if (isInitialized) {
+      // This ensures we update the adjacent items after the viewport has changed
+      updateAdjacentItems();
+    }
+  }, [viewport.offsetX, viewport.offsetY, isInitialized, updateAdjacentItems]);
 
   // Handle keyboard navigation
   useEffect(() => {

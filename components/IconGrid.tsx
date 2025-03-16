@@ -25,12 +25,23 @@ export default function IconGrid() {
         }}
       >
         {gridItems.map((item) => {
+          // Skip rendering empty items completely
+          if (item.icon.name === "empty") {
+            return null;
+          }
+
           const IconComponent = item.icon.component;
 
           return (
             <div
               key={`${item.position.x}-${item.position.y}`}
-              className={`size-10 flex items-center justify-center ${item.bgColor}`}
+              className={`size-10 flex items-center justify-center ${
+                item.bgColor
+              } ${
+                item.isAdjacentToPlayer
+                  ? "ring-2 ring-white ring-opacity-50 rounded-full"
+                  : ""
+              }`}
               style={{
                 position: "absolute",
                 left: `${item.renderPosition.x * 40}px`,
