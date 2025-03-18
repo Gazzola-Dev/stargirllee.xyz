@@ -217,19 +217,47 @@ export const useGame = (initialDensity = 0.33) => {
     });
   }, [viewport]);
 
+  // Check if moving in a direction would reach the map boundary at the player position
+  const wouldReachMapBoundary = useCallback(
+    (dx: number, dy: number) => {
+      // Player position in world coordinates
+      const playerWorldX = viewport.offsetX + Math.floor(viewport.width / 2);
+      const playerWorldY = viewport.offsetY + Math.floor(viewport.height / 2);
+
+      // Calculate new position after potential movement
+      const newPlayerWorldX = playerWorldX + dx;
+      const newPlayerWorldY = playerWorldY + dy;
+
+      // Check if the new position would be outside the map boundaries
+      // For right and bottom edges, subtract 1 to prevent going beyond the map
+      // Since grid is 0-indexed, the valid range is 0 to gridWidth-1 and 0 to gridHeight-1
+      if (
+        newPlayerWorldX < 0 ||
+        newPlayerWorldX >= gridWidth - 1 || // Subtract 1 for right edge
+        newPlayerWorldY < 0 ||
+        newPlayerWorldY >= gridHeight - 1 // Subtract 1 for bottom edge
+      ) {
+        return true;
+      }
+
+      return false;
+    },
+    [viewport, gridWidth, gridHeight]
+  );
+
   // Update viewport position (for scrolling/movement)
   const moveViewport = useCallback(
     (dx: number, dy: number) => {
+      // Check if moving would reach the map boundary
+      if (wouldReachMapBoundary(dx, dy)) {
+        // If so, don't allow the movement
+        return;
+      }
+
       setViewport((prev) => {
-        // Calculate new offset
-        const newOffsetX = Math.max(
-          0,
-          Math.min(gridWidth - prev.width, prev.offsetX + dx)
-        );
-        const newOffsetY = Math.max(
-          0,
-          Math.min(gridHeight - prev.height, prev.offsetY + dy)
-        );
+        // Calculate new offset - enforce grid boundaries
+        const newOffsetX = prev.offsetX + dx;
+        const newOffsetY = prev.offsetY + dy;
 
         return {
           ...prev,
@@ -241,7 +269,7 @@ export const useGame = (initialDensity = 0.33) => {
       // We'll update adjacent items after the state update is complete
       // using the useEffect below, not here
     },
-    [gridHeight, gridWidth]
+    [wouldReachMapBoundary]
   );
 
   // Mark initialization as complete
