@@ -1,14 +1,3 @@
-/*
- * ⚠️ DEVELOPMENT USE ONLY ⚠️
- *
- * This file has all TypeScript errors disabled.
- * These error suppressions should NOT be copied into application code.
- * This file is for development reference only.
- *
- * Use the original source files for application code.
- */
-// @ts-nocheck
-
 import {
   Activity,
   AlarmClock,
