@@ -16,7 +16,7 @@ export default function IconGrid() {
   }
 
   return (
-    <div className="flex justify-center items-center min-h-screen">
+    <div className="flex justify-center items-center min-h-screen bg-black">
       <div
         className="flex flex-wrap relative"
         style={{
@@ -28,6 +28,9 @@ export default function IconGrid() {
           // Get only the first icon from the stack
           const icon = item.icons[0];
           const IconComponent = icon.component;
+
+          // Determine icon color - white if it's new, otherwise use the assigned color
+          const iconColorClass = icon.isNew ? "text-white" : icon.iconColor;
 
           return (
             <div
@@ -42,15 +45,16 @@ export default function IconGrid() {
               }}
             >
               <div
-                className="absolute flex items-center justify-center"
+                className="absolute flex items-center justify-center transition-opacity"
                 style={{
                   top: "10px", // Center the icon vertically in the smaller parent square
                   left: "10px", // Center horizontally
                   transform: "translate(-50%, -50%)", // Adjust to center the item
                   zIndex: 10,
+                  opacity: icon.opacity,
                 }}
               >
-                <IconComponent className={`size-4 ${icon.iconColor}`} />
+                <IconComponent className={`size-4 ${iconColorClass}`} />
               </div>
             </div>
           );

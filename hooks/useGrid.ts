@@ -1,5 +1,6 @@
 import getRandomIcons, { icons } from "@/lib/_iconList.util";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import useInterval from "use-interval";
 
 export type GridPosition = {
   x: number;
@@ -10,6 +11,10 @@ export type IconItem = {
   name: string;
   component: React.FC<React.SVGProps<SVGSVGElement>>;
   iconColor: string;
+  opacity: number;
+  isNew: boolean;
+  createdAt: number;
+  fadeSteps: number; // Track fade steps for discrete opacity changes
 };
 
 export type GridItem = {
@@ -17,6 +22,49 @@ export type GridItem = {
   renderPosition: GridPosition;
   icons: IconItem[];
   bgColor: string;
+  active: boolean;
+};
+
+const chanceRandomActive = 0.0001;
+const chanceRandomName = 0.05;
+
+const getRandomItem = <T>(items: T[]): T => {
+  return items[Math.floor(Math.random() * items.length)];
+};
+
+const getRandomIconWithColor = (isNew = false): IconItem => {
+  // Get icons from random categories
+  const randomIcons = getRandomIcons();
+  const icon =
+    randomIcons.length > 0 ? getRandomItem(randomIcons) : getRandomItem(icons);
+
+  // Initial opacity is 1.0
+  const opacity = 1.0;
+
+  return {
+    name: icon.name,
+    component: icon.component,
+    iconColor: getRandomItem(iconColors),
+    opacity: opacity,
+    isNew: isNew,
+    createdAt: Date.now(),
+    fadeSteps: 0, // Initial fade steps count
+  };
+};
+
+// Define possible colors for icons and backgrounds
+const iconColors = [
+  "text-green-500",
+  "text-green-400",
+  "text-green-300",
+  "text-green-200",
+];
+
+const bgColors = ["bg-transparent"];
+
+// Generate a single icon
+const generateSingleIcon = (isNew = false): IconItem[] => {
+  return [getRandomIconWithColor(isNew)];
 };
 
 export const useGrid = () => {
@@ -31,54 +79,13 @@ export const useGrid = () => {
     y: Math.floor(gridHeight / 2),
   });
 
-  // Define possible colors for icons and backgrounds
-  const iconColors = [
-    "text-black dark:text-white",
-    "text-red-500",
-    "text-blue-500",
-    "text-green-500",
-    "text-yellow-500",
-    "text-purple-500",
-    "text-pink-500",
-    "text-indigo-500",
-  ];
+  // For tracking if animation is currently running
+  const [isAnimating, setIsAnimating] = useState(true);
 
-  const bgColors = [
-    "bg-transparent",
-    "bg-red-100 dark:bg-red-900",
-    "bg-blue-100 dark:bg-blue-900",
-    "bg-green-100 dark:bg-green-900",
-    "bg-yellow-100 dark:bg-yellow-900",
-    "bg-purple-100 dark:bg-purple-900",
-    "bg-pink-100 dark:bg-pink-900",
-    "bg-indigo-100 dark:bg-indigo-900",
-  ];
-
-  // Function to get a random item from an array
-  const getRandomItem = <T>(items: T[]): T => {
-    return items[Math.floor(Math.random() * items.length)];
-  };
-
-  // Function to generate a random icon with a color
-  const getRandomIconWithColor = (): IconItem => {
-    // Get icons from random categories
-    const randomIcons = getRandomIcons();
-    const icon =
-      randomIcons.length > 0
-        ? getRandomItem(randomIcons)
-        : getRandomItem(icons);
-
-    return {
-      name: icon.name,
-      component: icon.component,
-      iconColor: getRandomItem(iconColors),
-    };
-  };
-
-  // Generate a single icon instead of a stack
-  const generateSingleIcon = (): IconItem[] => {
-    return [getRandomIconWithColor()];
-  };
+  // Keep track of the grid state for efficient updates
+  const gridStateRef = useRef<Map<string, GridItem>>(new Map());
+  // Define the number of steps for fading
+  const totalFadeSteps = 12; // Will result in 12 * 250ms = 3 seconds of fade time
 
   // Initialize grid when component mounts
   useEffect(() => {
@@ -96,29 +103,35 @@ export const useGrid = () => {
       };
     };
 
-    // Initialize the grid with sparse icons
+    // Initialize the grid with a few random active cells at the top
     const initializeGrid = () => {
       const newViewportSize = calculateViewportSize();
       setViewportSize(newViewportSize);
 
-      // Generate initial grid items sparsely (only about 10% of grid cells will have icons)
+      // Create initial grid structure (all cells, mostly inactive)
       const items: GridItem[] = [];
+      const tempGridState = new Map<string, GridItem>();
 
       for (let y = 0; y < gridHeight; y++) {
         for (let x = 0; x < gridWidth; x++) {
-          // Only create an icon at ~10% of positions
-          if (Math.random() < 0.1) {
-            items.push({
-              position: { x, y },
-              renderPosition: { x: 0, y: 0 }, // Will be calculated later
-              icons: generateSingleIcon(),
-              bgColor: getRandomItem(bgColors),
-            });
-          }
+          // Only make the top row cells active with a 5% chance
+          const active = y === 0 && Math.random() < 0.0;
+
+          const gridItem: GridItem = {
+            position: { x, y },
+            renderPosition: { x: 0, y: 0 }, // Will be calculated later
+            icons: active ? generateSingleIcon(true) : [], // Only active cells have icons
+            bgColor: getRandomItem(bgColors),
+            active: active,
+          };
+
+          items.push(gridItem);
+          tempGridState.set(`${x}-${y}`, gridItem);
         }
       }
 
       setGridItems(items);
+      gridStateRef.current = tempGridState;
     };
 
     initializeGrid();
@@ -131,8 +144,100 @@ export const useGrid = () => {
     window.addEventListener("resize", handleResize);
     return () => {
       window.removeEventListener("resize", handleResize);
+      setIsAnimating(false);
     };
   }, []);
+
+  // Matrix animation function as a useCallback
+  const updateMatrixAnimation = useCallback(() => {
+    const currentTime = Date.now();
+    const newGridState = new Map(gridStateRef.current);
+
+    // Process grid cells from top to bottom for the cascading effect
+    for (let y = 0; y < gridHeight; y++) {
+      for (let x = 0; x < gridWidth; x++) {
+        const key = `${x}-${y}`;
+        const gridItem = newGridState.get(key);
+
+        if (!gridItem) continue;
+
+        // Handle icon opacity step changes for existing active cells
+        if (gridItem.active && gridItem.icons.length > 0) {
+          const icon = gridItem.icons[0];
+
+          // Apply the fading effect after 2 seconds
+          if (currentTime - icon.createdAt > 2000) {
+            // Check if we need to update the fade step
+            icon.fadeSteps += 1;
+
+            // Calculate new opacity based on fade steps
+            if (icon.fadeSteps >= totalFadeSteps) {
+              // Icon has fully faded, deactivate the cell
+              gridItem.active = false;
+              gridItem.icons = [];
+            } else {
+              // Decrease opacity in discrete steps
+              icon.opacity = 1.0 - icon.fadeSteps / totalFadeSteps;
+            }
+          } else {
+            // Reset the "new" status after the first interval
+            icon.isNew = false;
+          }
+
+          console.count("updateMatrixAnimation");
+
+          // 10% chance to change to a different icon
+          if (Math.random() < chanceRandomName) {
+            const newIconData = getRandomIconWithColor();
+            icon.name = newIconData.name;
+            icon.component = newIconData.component;
+            // Keep original opacity, creation time and fade steps
+          }
+        }
+
+        // Logic for activating new cells
+        if (!gridItem.active) {
+          // Check if the cell above is active (cascade effect)
+          let shouldActivate = false;
+
+          if (y > 0) {
+            const cellAboveKey = `${x}-${y - 1}`;
+            const cellAbove = newGridState.get(cellAboveKey);
+
+            if (
+              cellAbove &&
+              cellAbove.active &&
+              cellAbove.icons.length > 0 &&
+              !cellAbove.icons[0].isNew
+            ) {
+              // Cell above was active in the last interval and not just created
+              shouldActivate = true;
+            }
+          }
+
+          // 5% random chance to activate any cell
+          if (!shouldActivate && Math.random() < chanceRandomActive) {
+            shouldActivate = true;
+          }
+
+          if (shouldActivate) {
+            gridItem.active = true;
+            gridItem.icons = generateSingleIcon(true); // Mark as new
+          }
+        }
+
+        // Update the grid state
+        newGridState.set(key, gridItem);
+      }
+    }
+
+    // Update the grid state reference and trigger a re-render
+    gridStateRef.current = newGridState;
+    setGridItems(Array.from(newGridState.values()));
+  }, []);
+
+  // Use useInterval hook instead of window.setInterval
+  useInterval(updateMatrixAnimation, isAnimating ? 50 : null);
 
   // Calculate visible area and render positions based on the center position
   const calculateVisibleItems = () => {
@@ -173,7 +278,8 @@ export const useGrid = () => {
           item.position.x >= adjustedStartX &&
           item.position.x < endX &&
           item.position.y >= adjustedStartY &&
-          item.position.y < endY
+          item.position.y < endY &&
+          item.active // Only return active items
         );
       })
       .map((item) => {
