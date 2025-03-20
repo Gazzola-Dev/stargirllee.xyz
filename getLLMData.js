@@ -26,7 +26,7 @@ const blacklistedDirs = [
 
 // Specific files to exclude even if under whitelisted directories
 const blacklistedFiles = [
-  // "lib/iconList.util.ts", // Specific file to exclude
+  "lib/iconList.util.ts", // Specific file to exclude
 ];
 
 // Whitelist of specific files that should be included when in repo root

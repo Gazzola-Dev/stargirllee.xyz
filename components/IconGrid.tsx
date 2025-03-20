@@ -1,19 +1,19 @@
 "use client";
 
-import { useGame } from "@/hooks/useGame";
-import { useEffect } from "react";
-import PlayerCharacter from "./PlayerCharacter";
+import { useGrid } from "@/hooks/useGrid";
+import useIsMounted from "@/hooks/useIsMounted";
 
 export default function IconGrid() {
-  const { gridItems, gridSize, isInitialized, completeInitialization } =
-    useGame();
+  const { gridItems, gridSize } = useGrid();
+  const isMounted = useIsMounted();
 
-  // Mark initialization as complete after mounting
-  useEffect(() => {
-    if (!isInitialized) {
-      completeInitialization();
-    }
-  }, [isInitialized, completeInitialization]);
+  if (!isMounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Loading...
+      </div>
+    );
+  }
 
   return (
     <div className="flex justify-center items-center min-h-screen">
@@ -25,48 +25,47 @@ export default function IconGrid() {
         }}
       >
         {gridItems.map((item) => {
-          // Skip rendering empty items completely
-          if (item.icon.name === "empty") {
-            return null;
-          }
-
-          const IconComponent = item.icon.component;
-
           return (
             <div
               key={`${item.position.x}-${item.position.y}`}
-              className={`size-10 flex items-center justify-center ${
-                item.bgColor
-              } ${
-                item.isAdjacentToPlayer
-                  ? "ring-2 ring-white ring-opacity-50 rounded-full"
-                  : ""
-              }`}
+              className={`relative`}
               style={{
                 position: "absolute",
                 left: `${item.renderPosition.x * 40}px`,
                 top: `${item.renderPosition.y * 40}px`,
-                transition: "all 0.3s ease-in-out",
+                width: "40px",
+                height: "40px",
               }}
             >
-              <IconComponent className={`size-8 ${item.iconColor}`} />
+              <div
+                className="absolute flex flex-col items-center"
+                style={{
+                  top: "20px", // Center the first icon vertically in the parent square
+                  left: "20px", // Center horizontally
+                  transform: "translate(-50%, -50%)", // Adjust to center the items
+                  zIndex: 10,
+                }}
+              >
+                {item.icons.map((icon, iconIndex) => {
+                  const IconComponent = icon.component;
+                  return (
+                    <div
+                      key={`icon-${iconIndex}`}
+                      className="flex items-center justify-center"
+                      style={{
+                        width: "32px", // size-8 = 2rem = 32px
+                        height: "32px",
+                        marginTop: iconIndex > 0 ? "8px" : "0",
+                      }}
+                    >
+                      <IconComponent className={`size-8 ${icon.iconColor}`} />
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           );
         })}
-
-        {/* Player character is always centered on screen, not part of the grid */}
-        <div
-          className="absolute"
-          style={{
-            left: `${Math.floor(gridSize.width / 2) * 40}px`,
-            top: `${Math.floor(gridSize.height / 2) * 40}px`,
-            transform: "translate(-50%, -50%)",
-            marginLeft: "20px",
-            marginTop: "20px",
-          }}
-        >
-          <PlayerCharacter />
-        </div>
       </div>
     </div>
   );
