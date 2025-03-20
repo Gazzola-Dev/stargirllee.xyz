@@ -20,48 +20,37 @@ export default function IconGrid() {
       <div
         className="flex flex-wrap relative"
         style={{
-          width: `${gridSize.width * 40}px`,
-          height: `${gridSize.height * 40}px`,
+          width: `${gridSize.width * 20}px`,
+          height: `${gridSize.height * 20}px`,
         }}
       >
         {gridItems.map((item) => {
+          // Get only the first icon from the stack
+          const icon = item.icons[0];
+          const IconComponent = icon.component;
+
           return (
             <div
               key={`${item.position.x}-${item.position.y}`}
               className={`relative`}
               style={{
                 position: "absolute",
-                left: `${item.renderPosition.x * 40}px`,
-                top: `${item.renderPosition.y * 40}px`,
-                width: "40px",
-                height: "40px",
+                left: `${item.renderPosition.x * 20}px`,
+                top: `${item.renderPosition.y * 20}px`,
+                width: "20px",
+                height: "20px",
               }}
             >
               <div
-                className="absolute flex flex-col items-center"
+                className="absolute flex items-center justify-center"
                 style={{
-                  top: "20px", // Center the first icon vertically in the parent square
-                  left: "20px", // Center horizontally
-                  transform: "translate(-50%, -50%)", // Adjust to center the items
+                  top: "10px", // Center the icon vertically in the smaller parent square
+                  left: "10px", // Center horizontally
+                  transform: "translate(-50%, -50%)", // Adjust to center the item
                   zIndex: 10,
                 }}
               >
-                {item.icons.map((icon, iconIndex) => {
-                  const IconComponent = icon.component;
-                  return (
-                    <div
-                      key={`icon-${iconIndex}`}
-                      className="flex items-center justify-center"
-                      style={{
-                        width: "32px", // size-8 = 2rem = 32px
-                        height: "32px",
-                        marginTop: iconIndex > 0 ? "8px" : "0",
-                      }}
-                    >
-                      <IconComponent className={`size-8 ${icon.iconColor}`} />
-                    </div>
-                  );
-                })}
+                <IconComponent className={`size-4 ${icon.iconColor}`} />
               </div>
             </div>
           );

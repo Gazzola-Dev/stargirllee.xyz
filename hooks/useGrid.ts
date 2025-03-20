@@ -20,9 +20,9 @@ export type GridItem = {
 };
 
 export const useGrid = () => {
-  // Fixed grid size of 50x50
-  const gridWidth = 50;
-  const gridHeight = 50;
+  // Fixed grid size of 100x100 (doubled from 50x50 since we're halving the square size)
+  const gridWidth = 100;
+  const gridHeight = 100;
 
   const [gridItems, setGridItems] = useState<GridItem[]>([]);
   const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
@@ -62,7 +62,6 @@ export const useGrid = () => {
   // Function to generate a random icon with a color
   const getRandomIconWithColor = (): IconItem => {
     // Get icons from random categories
-
     const randomIcons = getRandomIcons();
     const icon =
       randomIcons.length > 0
@@ -76,25 +75,18 @@ export const useGrid = () => {
     };
   };
 
-  // Generate a random number of icons between 3 and 20
-  const generateRandomIconStack = (): IconItem[] => {
-    const count = Math.floor(Math.random() * 18) + 3; // Random number between 3 and
-    const iconStack: IconItem[] = [];
-
-    for (let i = 0; i < count; i++) {
-      iconStack.push(getRandomIconWithColor());
-    }
-
-    return iconStack;
+  // Generate a single icon instead of a stack
+  const generateSingleIcon = (): IconItem[] => {
+    return [getRandomIconWithColor()];
   };
 
   // Initialize grid when component mounts
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // Calculate viewport size in grid units (40px per grid cell)
+    // Calculate viewport size in grid units (20px per grid cell - half of the original 40px)
     const calculateViewportSize = () => {
-      const squareSize = 40; // size-10 = 2.5rem = 40px
+      const squareSize = 20; // Half of the original size (40px)
       const viewportColumns = Math.floor(window.innerWidth / squareSize);
       const viewportRows = Math.floor(window.innerHeight / squareSize);
 
@@ -104,22 +96,22 @@ export const useGrid = () => {
       };
     };
 
-    // Initialize the grid with sparse vertical icon stacks
+    // Initialize the grid with sparse icons
     const initializeGrid = () => {
       const newViewportSize = calculateViewportSize();
       setViewportSize(newViewportSize);
 
-      // Generate initial grid items sparsely (only about 10% of grid cells will have stacks)
+      // Generate initial grid items sparsely (only about 10% of grid cells will have icons)
       const items: GridItem[] = [];
 
       for (let y = 0; y < gridHeight; y++) {
         for (let x = 0; x < gridWidth; x++) {
-          // Only create a stack at ~10% of positions
+          // Only create an icon at ~10% of positions
           if (Math.random() < 0.1) {
             items.push({
               position: { x, y },
               renderPosition: { x: 0, y: 0 }, // Will be calculated later
-              icons: generateRandomIconStack(),
+              icons: generateSingleIcon(),
               bgColor: getRandomItem(bgColors),
             });
           }
