@@ -1,64 +1,72 @@
 "use client";
 
-import { useGrid } from "@/hooks/useGrid";
-import useIsMounted from "@/hooks/useIsMounted";
+import { useGame } from "@/hooks/useGame";
+import { useEffect } from "react";
+import PlayerCharacter from "./PlayerCharacter";
 
 export default function IconGrid() {
-  const { gridItems, gridSize } = useGrid();
-  const isMounted = useIsMounted();
+  const { gridItems, gridSize, isInitialized, completeInitialization } =
+    useGame();
 
-  if (!isMounted) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        Loading...
-      </div>
-    );
-  }
+  // Mark initialization as complete after mounting
+  useEffect(() => {
+    if (!isInitialized) {
+      completeInitialization();
+    }
+  }, [isInitialized, completeInitialization]);
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-black">
+    <div className="flex justify-center items-center min-h-screen">
       <div
         className="flex flex-wrap relative"
         style={{
-          width: `${gridSize.width * 20}px`,
-          height: `${gridSize.height * 20}px`,
+          width: `${gridSize.width * 40}px`,
+          height: `${gridSize.height * 40}px`,
         }}
       >
         {gridItems.map((item) => {
-          // Get only the first icon from the stack
-          const icon = item.icons[0];
-          const IconComponent = icon.component;
+          // Skip rendering empty items completely
+          if (item.icon.name === "empty") {
+            return null;
+          }
 
-          // Determine icon color - white if it's new, otherwise use the assigned color
-          const iconColorClass = icon.isNew ? "text-white" : icon.iconColor;
+          const IconComponent = item.icon.component;
 
           return (
             <div
               key={`${item.position.x}-${item.position.y}`}
-              className={`relative`}
+              className={`size-10 flex items-center justify-center ${
+                item.bgColor
+              } ${
+                item.isAdjacentToPlayer
+                  ? "ring-2 ring-white ring-opacity-50 rounded-full"
+                  : ""
+              }`}
               style={{
                 position: "absolute",
-                left: `${item.renderPosition.x * 20}px`,
-                top: `${item.renderPosition.y * 20}px`,
-                width: "20px",
-                height: "20px",
+                left: `${item.renderPosition.x * 40}px`,
+                top: `${item.renderPosition.y * 40}px`,
+                transition: "all 0.3s ease-in-out",
               }}
             >
-              <div
-                className="absolute flex items-center justify-center transition-opacity"
-                style={{
-                  top: "10px", // Center the icon vertically in the smaller parent square
-                  left: "10px", // Center horizontally
-                  transform: "translate(-50%, -50%)", // Adjust to center the item
-                  zIndex: 10,
-                  opacity: icon.opacity,
-                }}
-              >
-                <IconComponent className={`size-4 ${iconColorClass}`} />
-              </div>
+              <IconComponent className={`size-8 ${item.iconColor}`} />
             </div>
           );
         })}
+
+        {/* Player character is always centered on screen, not part of the grid */}
+        <div
+          className="absolute"
+          style={{
+            left: `${Math.floor(gridSize.width / 2) * 40}px`,
+            top: `${Math.floor(gridSize.height / 2) * 40}px`,
+            transform: "translate(-50%, -50%)",
+            marginLeft: "20px",
+            marginTop: "20px",
+          }}
+        >
+          <PlayerCharacter />
+        </div>
       </div>
     </div>
   );
