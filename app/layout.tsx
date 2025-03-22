@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Luvstar.City",
+  title: "StarGirlLee.XYZ",
   description: "Just a silly goose game for silly geese",
 };
 
