@@ -5,8 +5,14 @@ import { useEffect } from "react";
 import PlayerCharacter from "./PlayerCharacter";
 
 export default function IconGrid() {
-  const { gridItems, gridSize, isInitialized, completeInitialization } =
-    useGame();
+  const {
+    gridItems,
+    gridSize,
+    isInitialized,
+    completeInitialization,
+    currentZLevel,
+    maxZLevel,
+  } = useGame();
 
   // Mark initialization as complete after mounting
   useEffect(() => {
@@ -16,7 +22,13 @@ export default function IconGrid() {
   }, [isInitialized, completeInitialization]);
 
   return (
-    <div className="flex justify-center items-center min-h-screen">
+    <div className="flex flex-col justify-center items-center min-h-screen">
+      {/* Z-level indicator */}
+      <div className="text-xl mb-4 font-mono bg-black/20 backdrop-blur-sm text-white px-4 py-2 rounded-full">
+        Level: {currentZLevel} / {maxZLevel}
+        <span className="ml-2 text-sm">(Press Q to go up, E to go down)</span>
+      </div>
+
       <div
         className="flex flex-wrap relative"
         style={{
@@ -34,7 +46,7 @@ export default function IconGrid() {
 
           return (
             <div
-              key={`${item.position.x}-${item.position.y}`}
+              key={`${item.position.x}-${item.position.y}-${item.position.z}`}
               className={`size-10 flex items-center justify-center ${
                 item.bgColor
               } ${
@@ -47,6 +59,16 @@ export default function IconGrid() {
                 left: `${item.renderPosition.x * 40}px`,
                 top: `${item.renderPosition.y * 40}px`,
                 transition: "all 0.3s ease-in-out",
+                opacity: item.opacity ?? 1,
+                // Scale down items that are not on the current z-level
+                transform: `scale(${
+                  item.position.z === currentZLevel
+                    ? 1
+                    : Math.max(
+                        0.6,
+                        1 - Math.abs(item.position.z - currentZLevel) * 0.1
+                      )
+                })`,
               }}
             >
               <IconComponent className={`size-8 ${item.iconColor}`} />
@@ -63,6 +85,7 @@ export default function IconGrid() {
             transform: "translate(-50%, -50%)",
             marginLeft: "20px",
             marginTop: "20px",
+            zIndex: 50,
           }}
         >
           <PlayerCharacter />
